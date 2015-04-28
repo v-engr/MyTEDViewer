@@ -10,13 +10,17 @@
 
 @interface ViewController ()
 
+@property (weak, nonatomic) IBOutlet UIWebView *webView;
+
 @end
 
 @implementation ViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    // Do any additional setup after loading the view, typically from a nib.
+    // запрос
+    NSURLRequest *request = [[NSURLRequest alloc] initWithURL:self.link];
+    [self.webView loadRequest:request];
 }
 
 - (void)didReceiveMemoryWarning {

@@ -7,6 +7,8 @@
 //
 
 #import "AppDelegate.h"
+#import "RSSParser.h"
+#import "RssList.h"
 
 @interface AppDelegate ()
 
@@ -16,8 +18,55 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Override point for customization after application launch.
+    
+    //проверяем доступность хоста
+    Reachability* appleReachability = [Reachability reachabilityWithHostName:@"www.ted.com"];
+    
+    NetworkStatus status = appleReachability.currentReachabilityStatus;
+    switch (status) {
+        case NotReachable: {
+            // хост недоступен
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Connection Error!" message:@"Requested server unavailable." delegate:nil cancelButtonTitle:@"OK" otherButtonTitles: nil];
+            [alert show];
+        }
+            break;
+        case ReachableViaWiFi:
+            // доступен через WiFi
+            [self downloadAndParseData];
+            break;
+        case ReachableViaWWAN:
+            // доступен через 3G или EDGE
+            [self downloadAndParseData];
+            break;
+    }
+    
+    
     return YES;
+}
+
+- (void)downloadAndParseData {
+    //запрос
+    NSURL *url = [NSURL URLWithString:@"http://www.ted.com/talks/rss"];
+    NSURLRequest *request = [[NSURLRequest alloc] initWithURL:url];
+    //парсинг
+    [RSSParser parseRSSFeedForRequest:request success:^(NSArray *feedItems) {
+        [UIApplication sharedApplication].networkActivityIndicatorVisible = YES;
+        UIViewController *rootViewController = self.window.rootViewController;
+        UIStoryboard *storyboard = rootViewController.storyboard;
+        UINavigationController *navigationController = [storyboard instantiateViewControllerWithIdentifier:@"InitialController"];
+        RssList *viewController = [navigationController.viewControllers objectAtIndex:0];
+        viewController.data = feedItems;
+        [viewController.tableView reloadData];
+        [UIApplication sharedApplication].networkActivityIndicatorVisible = NO;
+        
+        self.window.rootViewController = navigationController;
+        
+    } failure:^(NSError *error) {
+        
+        NSLog(@"%@", error);
+        UIAlertView *allertView = [[UIAlertView alloc] initWithTitle:@"Ошибка" message:[error localizedDescription] delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+        [allertView show];
+    }];
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application {
